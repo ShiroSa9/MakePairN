@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ペア作成ツール</title>
+
+<style>
+body {
+  font-family: sans-serif;
+  padding: 15px;
+  background: #f5f5f5;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+}
+
+textarea, input {
+  width: 100%;
+  font-size: 16px;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  font-size: 18px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 10px;
+  background: #4CAF50;
+  color: white;
+}
+
+.subBtn {
+  background: #888;
+}
+
+.card {
+  background: white;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 10px;
+}
+
+.cycle {
+  margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h2>ペア作成ツール</h2>
+
+<p>名前、性別(m/f)、学年 を1行ずつ入力</p>
+
+<textarea id="members" placeholder="例：
+田中、f、4
+佐藤、m、2"></textarea>
+
+<label>周期数</label>
+<input type="number" id="turn" value="1">
+
+<button onclick="saveData()">保存</button>
+<button onclick="makePairs()">ペア作成</button>
+<button class="subBtn" onclick="resetData()">リセット</button>
+
+<div id="result"></div>
+
+</div>
+
+<script>
+
+// 保存
+function saveData() {
+  localStorage.setItem("members", document.getElementById("members").value);
+  alert("保存しました！");
+}
+
+// 読み込み
+window.onload = function() {
+  let saved = localStorage.getItem("members");
+  if (saved) document.getElementById("members").value = saved;
+};
+
+// リセット
+function resetData() {
+  localStorage.removeItem("members");
+  document.getElementById("members").value = "";
+}
+
+// パース
+function parseMembers() {
+  return document.getElementById("members").value
+    .trim()
+    .split("\n")
+    .map(line => {
+      let [name, sex, age] = line.split("、");
+      return {
+        name: name.trim(),
+        sex: sex.trim(),
+        age: Number(age)
+      };
+    });
+}
+
+// シャッフル
+function shuffle(arr){
+  return arr.sort(()=>Math.random()-0.5);
+}
+
+function isValidPair(a, b){
+  return a.sex === b.sex;
+}
+
+// ペア作成
+function makePairs(){
+
+  let base = parseMembers();
+  let turn = parseInt(document.getElementById("turn").value);
+  let result = document.getElementById("result");
+  result.innerHTML = "";
+
+  for(let k=1; k<=turn; k++){
+
+    let people = shuffle([...base]);
+    let used = new Array(people.length).fill(false);
+    let pairs = [];
+    let fail = 0;
+
+    while(pairs.length < Math.floor(people.length/2)){
+
+      let a = Math.floor(Math.random()*people.length);
+      let b = Math.floor(Math.random()*people.length);
+
+      if(a===b || used[a] || used[b]){
+        fail++;
+        continue;
+      }
+
+      // ★ここで条件チェック
+      if(!isValidPair(people[a], people[b])){
+        fail++;
+        continue;
+      }
+
+      pairs.push([people[a], people[b]]);
+      used[a] = true;
+      used[b] = true;
+      fail = 0;
+
+      if(fail > 1000){
+        alert("条件が厳しくてペア作れない可能性あり");
+        break;
+      }
+    }
+
+    // 表示
+    let div = document.createElement("div");
+    div.className = "cycle";
+    div.innerHTML = `<h3>${k}周期目</h3>`;
+
+    pairs.forEach(p=>{
+      let card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `${p[0].name}（${p[0].age}年） × ${p[1].name}（${p[1].age}年）`;
+      div.appendChild(card);
+    });
+
+    result.appendChild(div);
+  }
+}
+
+</script>
+
+</body>
+</html>
